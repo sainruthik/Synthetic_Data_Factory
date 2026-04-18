@@ -3,19 +3,10 @@ import { useGenerate } from '../hooks/useGenerate'
 import { SchemaBuilder } from '../components/schema-builder/SchemaBuilder'
 import { ChatPanel } from '../components/chat/ChatPanel'
 import { GenerateControls } from '../components/generate/GenerateControls'
+import { FormatPreview } from '../components/generate/FormatPreview'
 import { DatasetViewer } from '../components/dataset-viewer/DatasetViewer'
 import { ViolationBanner } from '../components/generate/ViolationBanner'
-import { toJsonl } from '../engine/writers/jsonl'
-import { toCsv } from '../engine/writers/csv'
-import { toSql } from '../engine/writers/sql'
-import { downloadFile } from '../engine/download'
 import type { SchemaField } from '../types/schema'
-
-const MIME: Record<string, string> = {
-  jsonl: 'application/x-ndjson',
-  csv:   'text/csv',
-  sql:   'text/plain',
-}
 
 export function GeneratePage() {
   const { state, dispatch } = useSchemaReducer()
@@ -24,23 +15,15 @@ export function GeneratePage() {
     rowCount, setRowCount,
     seed, setSeed, randomizeSeed,
     format, setFormat,
+    tableName, setTableName,
+    includeCreate, setIncludeCreate,
+    csvBom, setCsvBom,
+    exportError, exportStatus, exportFilename, exportData,
     generate,
   } = useGenerate()
 
   const handleSchema = (fields: SchemaField[]) => {
     dispatch({ type: 'SET_SCHEMA', payload: { fields } })
-  }
-
-  const handleGenerate = () => generate(state)
-
-  const handleDownload = () => {
-    if (!genState.result) return
-    const { rows } = genState.result
-    const content =
-      format === 'jsonl' ? toJsonl(rows) :
-      format === 'csv'   ? toCsv(rows)   :
-                           toSql(rows)
-    downloadFile(content, `synthetic_data.${format}`, MIME[format])
   }
 
   return (
@@ -83,9 +66,15 @@ export function GeneratePage() {
             onRandomizeSeed={randomizeSeed}
             format={format}
             onFormatChange={setFormat}
-            onGenerate={handleGenerate}
+            onGenerate={() => generate(state)}
             isGenerating={genState.isGenerating}
             hasFields={state.fields.length > 0}
+            tableName={tableName}
+            onTableNameChange={setTableName}
+            includeCreate={includeCreate}
+            onIncludeCreateChange={setIncludeCreate}
+            csvBom={csvBom}
+            onCsvBomChange={setCsvBom}
           />
         </div>
 
@@ -98,17 +87,39 @@ export function GeneratePage() {
         {genState.result && (
           <>
             <ViolationBanner violations={genState.result.violations} />
+
+            <FormatPreview
+              rows={genState.result.rows}
+              format={format}
+              opts={{ tableName, bom: csvBom }}
+            />
+
+            {exportError && (
+              <div className="rounded border border-red-500/40 bg-red-500/10 p-4">
+                <p className="text-xs font-mono text-red-600">Export error: {exportError}</p>
+              </div>
+            )}
+
             <div>
               <div className="flex items-center justify-between mb-3">
                 <p className="font-mono text-sm text-[var(--color-text-muted)]">
                   Dataset — {genState.result.rows.length} rows generated
                 </p>
-                <button
-                  onClick={handleDownload}
-                  className="px-4 py-1.5 font-mono text-xs font-semibold rounded border border-[var(--color-accent)] text-[var(--color-accent)] hover:bg-[var(--color-accent)] hover:text-white transition-colors"
-                >
-                  ↓ Download .{format}
-                </button>
+                <div className="flex items-center gap-3">
+                  {exportStatus === 'success' && exportFilename && (
+                    <span className="font-mono text-xs text-green-600">
+                      ✓ {exportFilename}
+                    </span>
+                  )}
+                  <button
+                    onClick={exportData}
+                    disabled={genState.isGenerating}
+                    aria-label={`Download dataset as ${format.toUpperCase()}`}
+                    className="px-4 py-1.5 font-mono text-xs font-semibold rounded border border-[var(--color-accent)] text-[var(--color-accent)] hover:bg-[var(--color-accent)] hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <span aria-hidden="true">↓</span>{' '}Download .{format}
+                  </button>
+                </div>
               </div>
               <DatasetViewer rows={genState.result.rows} />
             </div>
