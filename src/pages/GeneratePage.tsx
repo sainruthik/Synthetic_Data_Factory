@@ -3,7 +3,7 @@ import { useGenerate } from '../hooks/useGenerate'
 import { SchemaBuilder } from '../components/schema-builder/SchemaBuilder'
 import { ChatPanel } from '../components/chat/ChatPanel'
 import { GenerateControls } from '../components/generate/GenerateControls'
-import { PreviewTable } from '../components/generate/PreviewTable'
+import { DatasetViewer } from '../components/dataset-viewer/DatasetViewer'
 import { ViolationBanner } from '../components/generate/ViolationBanner'
 import { toJsonl } from '../engine/writers/jsonl'
 import { toCsv } from '../engine/writers/csv'
@@ -101,7 +101,7 @@ export function GeneratePage() {
             <div>
               <div className="flex items-center justify-between mb-3">
                 <p className="font-mono text-sm text-[var(--color-text-muted)]">
-                  Preview — {genState.result.rows.length} rows generated
+                  Dataset — {genState.result.rows.length} rows generated
                 </p>
                 <button
                   onClick={handleDownload}
@@ -110,7 +110,7 @@ export function GeneratePage() {
                   ↓ Download .{format}
                 </button>
               </div>
-              <PreviewTable rows={genState.result.rows} />
+              <DatasetViewer rows={genState.result.rows} />
             </div>
           </>
         )}
