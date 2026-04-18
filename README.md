@@ -289,9 +289,3 @@ src/
 - [ ] **Authentication** — save schemas and datasets to a personal account via Supabase Auth
 - [ ] **Schema library** — community-shared schema templates (e-commerce orders, healthcare records, financial transactions)
 - [ ] **More AI providers** — plug in Anthropic Claude or local models (Ollama) as the judge/schema assistant
-
----
-
-## License
-
-MIT — see [LICENSE](LICENSE) for details.
