@@ -127,7 +127,7 @@ VITE_OPENAI_API_KEY=sk-proj-...
 npm run dev
 ```
 
-Open [http://localhost:5173](http://localhost:5173).
+Open [synthetic-data-factory](https://vercel.com/sainruthiks-projects/synthetic-data-factory-l8lu/AAWxMVe5JoJpYussKdrvwM8AnSED).
 
 ---
 
