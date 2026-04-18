@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react'
 import { generateDataset, type GenerationResult } from '../engine/generateDataset'
 import { exportDataset } from '../engine/export'
 import { exportSchema } from '../lib/exportSchema'
-import type { SchemaState, SchemaField } from '../types/schema'
+import type { SchemaState, SchemaField, ExportedSchema } from '../types/schema'
 
 export type { OutputFormat } from '../engine/writers'
 
@@ -28,8 +28,9 @@ export function useGenerate() {
   const [exportStatus, setExportStatus] = useState<'idle' | 'success'>('idle')
   const [exportFilename, setExportFilename] = useState<string | null>(null)
 
-  // Last schema used for generation — needed for SQL DDL
+  // Last schema used for generation — needed for SQL DDL and quality review
   const [lastSchema, setLastSchema] = useState<SchemaField[] | null>(null)
+  const [lastExportedSchema, setLastExportedSchema] = useState<ExportedSchema | null>(null)
 
   const generate = useCallback((schemaState: SchemaState) => {
     if (schemaState.fields.length === 0) {
@@ -42,6 +43,7 @@ export function useGenerate() {
       const result = generateDataset(schema, rowCount, seed)
       setState({ result, isGenerating: false, error: null })
       setLastSchema(schemaState.fields)
+      setLastExportedSchema(schema)
     } catch (err) {
       setState({
         result: null,
@@ -53,6 +55,14 @@ export function useGenerate() {
 
   const randomizeSeed = useCallback(() => {
     setSeed(Math.floor(Math.random() * 999999))
+  }, [])
+
+  const patchRows = useCallback((newRows: Record<string, unknown>[]) => {
+    setState((prev) =>
+      prev.result
+        ? { ...prev, result: { ...prev.result, rows: newRows } }
+        : prev
+    )
   }, [])
 
   const exportData = useCallback(() => {
@@ -83,6 +93,7 @@ export function useGenerate() {
     includeCreate, setIncludeCreate,
     csvBom, setCsvBom,
     exportError, exportStatus, exportFilename, exportData,
-    generate,
+    generate, patchRows,
+    lastExportedSchema,
   }
 }

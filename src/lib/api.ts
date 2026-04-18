@@ -19,6 +19,7 @@ export async function callClaude(
   apiKey: string,
   messages: Pick<ChatMessage, 'role' | 'content'>[],
   systemPrompt: string,
+  model = 'gpt-4o',
   baseUrl = '/api/openai'
 ): Promise<string> {
   const url = `${baseUrl}/v1/chat/completions`
@@ -30,7 +31,7 @@ export async function callClaude(
       'content-type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'gpt-4o',
+      model,
       messages: [
         { role: 'system', content: systemPrompt },
         ...messages,

@@ -26,7 +26,7 @@ Valid types: string, integer, float, boolean, date, email, phone, uuid, enum
 
 Type-specific options:
 - integer / float: { "min": <number>, "max": <number> }
-- date: { "format": "<date_format_string>" }  e.g. "YYYY-MM-DD"
+- date: { "format": "<date_format_string>", "min": <optional start year integer>, "max": <optional end year integer> }  e.g. { "format": "YYYY-MM-DD", "min": 2015, "max": 2024 }
 - enum: { "options": ["value1", "value2", ...] }
 - All other types: null
 

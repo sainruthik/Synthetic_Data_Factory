@@ -21,7 +21,7 @@ describe('callClaude', () => {
       }),
     })
 
-    const result = await callClaude('test-key', messages, systemPrompt, baseUrl)
+    const result = await callClaude('test-key', messages, systemPrompt)
     expect(result).toBe('{"fields":[]}')
   })
 
@@ -33,7 +33,7 @@ describe('callClaude', () => {
       }),
     })
 
-    await callClaude('my-api-key', messages, systemPrompt, baseUrl)
+    await callClaude('my-api-key', messages, systemPrompt)
 
     const [url, opts] = mockFetch.mock.calls[0] as [string, RequestInit]
     expect(url).toBe('/api/openai/v1/chat/completions')
@@ -43,9 +43,18 @@ describe('callClaude', () => {
 
     const body = JSON.parse(opts.body as string) as Record<string, unknown>
     expect(body.model).toBe('gpt-4o')
-    // system prompt is injected as first message
     const bodyMessages = body.messages as Array<{ role: string; content: string }>
     expect(bodyMessages[0]).toEqual({ role: 'system', content: systemPrompt })
+  })
+
+  it('passes a custom model when provided', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({ choices: [{ message: { role: 'assistant', content: 'ok' } }] }),
+    })
+    await callClaude('key', messages, systemPrompt, 'gpt-4o-mini')
+    const body = JSON.parse((mockFetch.mock.calls[0] as [string, RequestInit])[1].body as string) as Record<string, unknown>
+    expect(body.model).toBe('gpt-4o-mini')
   })
 
   it('throws on a non-2xx response', async () => {
@@ -55,7 +64,7 @@ describe('callClaude', () => {
       json: async () => ({ error: { message: 'Unauthorized' } }),
     })
 
-    await expect(callClaude('bad-key', messages, systemPrompt, baseUrl)).rejects.toThrow(
+    await expect(callClaude('bad-key', messages, systemPrompt, undefined, baseUrl)).rejects.toThrow(
       'OpenAI API error 401: Unauthorized'
     )
   })
@@ -67,7 +76,7 @@ describe('callClaude', () => {
       json: async () => { throw new Error('bad json') },
     })
 
-    await expect(callClaude('key', messages, systemPrompt, baseUrl)).rejects.toThrow(
+    await expect(callClaude('key', messages, systemPrompt, undefined, baseUrl)).rejects.toThrow(
       'OpenAI API error 500'
     )
   })
@@ -78,13 +87,13 @@ describe('callClaude', () => {
       json: async () => ({ choices: [] }),
     })
 
-    await expect(callClaude('key', messages, systemPrompt, baseUrl)).rejects.toThrow(
+    await expect(callClaude('key', messages, systemPrompt)).rejects.toThrow(
       'missing choices[0].message.content'
     )
   })
 
   it('propagates network errors', async () => {
     mockFetch.mockRejectedValue(new Error('Network failure'))
-    await expect(callClaude('key', messages, systemPrompt, baseUrl)).rejects.toThrow('Network failure')
+    await expect(callClaude('key', messages, systemPrompt)).rejects.toThrow('Network failure')
   })
 })

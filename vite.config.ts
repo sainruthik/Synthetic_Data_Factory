@@ -22,7 +22,7 @@ export default defineConfig(({ mode }) => {
         '/api/openai': {
           target: 'https://api.openai.com',
           changeOrigin: true,
-          secure: true, // [M2] enforce TLS verification
+          secure: true,
           rewrite: (path) => path.replace(/^\/api\/openai/, ''),
         },
       },

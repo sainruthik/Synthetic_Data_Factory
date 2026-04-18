@@ -6,6 +6,7 @@ import { GenerateControls } from '../components/generate/GenerateControls'
 import { FormatPreview } from '../components/generate/FormatPreview'
 import { DatasetViewer } from '../components/dataset-viewer/DatasetViewer'
 import { ViolationBanner } from '../components/generate/ViolationBanner'
+import { QualityReviewPanel } from '../components/quality-review/QualityReviewPanel'
 import type { SchemaField } from '../types/schema'
 
 export function GeneratePage() {
@@ -19,7 +20,7 @@ export function GeneratePage() {
     includeCreate, setIncludeCreate,
     csvBom, setCsvBom,
     exportError, exportStatus, exportFilename, exportData,
-    generate,
+    generate, patchRows, lastExportedSchema,
   } = useGenerate()
 
   const handleSchema = (fields: SchemaField[]) => {
@@ -123,6 +124,14 @@ export function GeneratePage() {
               </div>
               <DatasetViewer rows={genState.result.rows} />
             </div>
+
+            {lastExportedSchema && (
+              <QualityReviewPanel
+                rows={genState.result.rows}
+                schema={lastExportedSchema}
+                onPatchRows={patchRows}
+              />
+            )}
           </>
         )}
       </div>

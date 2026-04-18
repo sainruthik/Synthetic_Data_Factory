@@ -58,7 +58,7 @@ export function TypeOptions({ field, dispatch }: TypeOptionsProps) {
   if (field.type === 'date') {
     const opts = (field.typeOptions ?? getDefaultTypeOptions(field.type)) as DateOptions
     return (
-      <div className="mt-2">
+      <div className="mt-2 space-y-2">
         <label>
           <span className={labelClass}>Format</span>
           <input
@@ -69,11 +69,57 @@ export function TypeOptions({ field, dispatch }: TypeOptionsProps) {
             onChange={e =>
               dispatch({
                 type: 'UPDATE_FIELD',
-                payload: { id: field.id, updates: { typeOptions: { format: e.target.value } } },
+                payload: { id: field.id, updates: { typeOptions: { ...opts, format: e.target.value } } },
               })
             }
           />
         </label>
+        <div className="flex gap-3">
+          <label className="flex-1">
+            <span className={labelClass}>Min Year</span>
+            <input
+              type="number"
+              step="1"
+              min="1900"
+              max="2100"
+              value={opts.min ?? ''}
+              aria-label="Min Year"
+              placeholder="e.g. 2015"
+              className={inputClass}
+              onChange={e =>
+                dispatch({
+                  type: 'UPDATE_FIELD',
+                  payload: {
+                    id: field.id,
+                    updates: { typeOptions: { ...opts, min: e.target.value ? Number(e.target.value) : undefined } },
+                  },
+                })
+              }
+            />
+          </label>
+          <label className="flex-1">
+            <span className={labelClass}>Max Year</span>
+            <input
+              type="number"
+              step="1"
+              min="1900"
+              max="2100"
+              value={opts.max ?? ''}
+              aria-label="Max Year"
+              placeholder="e.g. 2024"
+              className={inputClass}
+              onChange={e =>
+                dispatch({
+                  type: 'UPDATE_FIELD',
+                  payload: {
+                    id: field.id,
+                    updates: { typeOptions: { ...opts, max: e.target.value ? Number(e.target.value) : undefined } },
+                  },
+                })
+              }
+            />
+          </label>
+        </div>
       </div>
     )
   }

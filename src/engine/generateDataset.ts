@@ -27,7 +27,7 @@ export function generateDataset(
   let rows: Record<string, unknown>[] = Array.from({ length: rowCount }, () => {
     const row: Record<string, unknown> = {}
     for (const field of schema.fields) {
-      row[field.name] = applyNullable(generateValue(field), field.nullable)
+      row[field.name] = applyNullable(generateValue(field, row), field.nullable)
     }
     return row
   })

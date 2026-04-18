@@ -15,7 +15,7 @@ export const FIELD_TYPES: FieldType[] = [
 
 export interface IntegerOptions { min: number; max: number }
 export interface FloatOptions { min: number; max: number }
-export interface DateOptions { format: string }
+export interface DateOptions { format: string; min?: number; max?: number }
 export interface EnumOptions { options: string[] }
 
 export type TypeOptions = IntegerOptions | FloatOptions | DateOptions | EnumOptions | null

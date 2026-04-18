@@ -10,7 +10,9 @@ function formatDate(date: Date, format: string): string {
 
 export function generateDate(options: DateOptions | null): string {
   const format = options?.format ?? 'YYYY-MM-DD'
-  const date = faker.date.between({ from: new Date('2000-01-01'), to: new Date('2030-12-31') })
+  const from = new Date(`${options?.min ?? 2000}-01-01`)
+  const to = new Date(`${options?.max ?? 2030}-12-31`)
+  const date = faker.date.between({ from, to })
   if (format === 'ISO') return date.toISOString()
   return formatDate(date, format)
 }
