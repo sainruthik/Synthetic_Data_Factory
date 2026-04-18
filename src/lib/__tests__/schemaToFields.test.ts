@@ -9,6 +9,7 @@ describe('exportedSchemaToFields', () => {
         { name: 'email', type: 'email', nullable: 0, options: null },
         { name: 'age', type: 'integer', nullable: 10, options: { min: 0, max: 120 } },
       ],
+      constraints: [],
     }
     const result = exportedSchemaToFields(schema)
     expect(result).toHaveLength(2)
@@ -24,6 +25,7 @@ describe('exportedSchemaToFields', () => {
       fields: [
         { name: 'x', type: 'string', nullable: 0, options: null },
       ],
+      constraints: [],
     }
     const result = exportedSchemaToFields(schema)
     expect(typeof result[0].id).toBe('string')
@@ -37,6 +39,7 @@ describe('exportedSchemaToFields', () => {
         { name: 'b', type: 'string', nullable: 0, options: null },
         { name: 'c', type: 'string', nullable: 0, options: null },
       ],
+      constraints: [],
     }
     const result = exportedSchemaToFields(schema)
     const ids = result.map((f) => f.id)
@@ -44,7 +47,7 @@ describe('exportedSchemaToFields', () => {
   })
 
   it('returns an empty array for an empty schema', () => {
-    const result = exportedSchemaToFields({ fields: [] })
+    const result = exportedSchemaToFields({ fields: [], constraints: [] })
     expect(result).toHaveLength(0)
   })
 
@@ -53,6 +56,7 @@ describe('exportedSchemaToFields', () => {
       fields: [
         { name: 'status', type: 'enum', nullable: 0, options: { options: ['active', 'inactive'] } },
       ],
+      constraints: [],
     }
     const result = exportedSchemaToFields(schema)
     expect(result[0].typeOptions).toEqual({ options: ['active', 'inactive'] })
