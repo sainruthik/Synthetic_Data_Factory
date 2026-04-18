@@ -17,7 +17,7 @@ export type { ChatMessage }
  */
 export async function callClaude(
   apiKey: string,
-  messages: ChatMessage[],
+  messages: Pick<ChatMessage, 'role' | 'content'>[],
   systemPrompt: string,
   baseUrl = '/api/openai'
 ): Promise<string> {

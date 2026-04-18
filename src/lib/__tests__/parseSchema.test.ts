@@ -156,3 +156,112 @@ describe('parseSchemaResponse', () => {
     }
   })
 })
+
+describe('parseSchemaResponse — constraints', () => {
+  const baseField = { name: 'id', type: 'uuid', nullable: 0, options: null }
+
+  it('returns empty constraints array when key is missing (back-compat)', () => {
+    const result = parseSchemaResponse(JSON.stringify({ fields: [baseField] }))
+    expect(result.constraints).toEqual([])
+  })
+
+  it('returns empty constraints array when constraints is empty array', () => {
+    const result = parseSchemaResponse(JSON.stringify({ fields: [baseField], constraints: [] }))
+    expect(result.constraints).toEqual([])
+  })
+
+  it('parses a valid comparison constraint', () => {
+    const input = JSON.stringify({
+      fields: [baseField],
+      constraints: [{ type: 'comparison', fieldA: 'age_min', operator: '<', fieldB: 'age_max' }],
+    })
+    const result = parseSchemaResponse(input)
+    expect(result.constraints).toHaveLength(1)
+    expect(result.constraints[0].type).toBe('comparison')
+  })
+
+  it('parses a valid conditional_null constraint', () => {
+    const input = JSON.stringify({
+      fields: [baseField],
+      constraints: [{ type: 'conditional_null', field: 'divorce_date', whenField: 'marital_status', whenValue: 'divorced' }],
+    })
+    const result = parseSchemaResponse(input)
+    expect(result.constraints[0].type).toBe('conditional_null')
+  })
+
+  it('parses a valid unique constraint', () => {
+    const input = JSON.stringify({
+      fields: [baseField],
+      constraints: [{ type: 'unique', field: 'email' }],
+    })
+    const result = parseSchemaResponse(input)
+    expect(result.constraints[0].type).toBe('unique')
+  })
+
+  it('parses a valid custom constraint', () => {
+    const input = JSON.stringify({
+      fields: [baseField],
+      constraints: [{ type: 'custom', description: 'salary should match seniority' }],
+    })
+    const result = parseSchemaResponse(input)
+    expect(result.constraints[0].type).toBe('custom')
+  })
+
+  it('accepts all valid comparison operators', () => {
+    for (const operator of ['>', '<', '>=']) {
+      const input = JSON.stringify({
+        fields: [baseField],
+        constraints: [{ type: 'comparison', fieldA: 'a', operator, fieldB: 'b' }],
+      })
+      expect(() => parseSchemaResponse(input)).not.toThrow()
+    }
+  })
+
+  it('throws on invalid constraint type', () => {
+    const input = JSON.stringify({
+      fields: [baseField],
+      constraints: [{ type: 'unknown_constraint', field: 'x' }],
+    })
+    expect(() => parseSchemaResponse(input)).toThrow('invalid')
+  })
+
+  it('throws on comparison with invalid operator', () => {
+    const input = JSON.stringify({
+      fields: [baseField],
+      constraints: [{ type: 'comparison', fieldA: 'a', operator: '!=', fieldB: 'b' }],
+    })
+    expect(() => parseSchemaResponse(input)).toThrow('invalid')
+  })
+
+  it('throws on comparison with empty fieldA', () => {
+    const input = JSON.stringify({
+      fields: [baseField],
+      constraints: [{ type: 'comparison', fieldA: '', operator: '>', fieldB: 'b' }],
+    })
+    expect(() => parseSchemaResponse(input)).toThrow('invalid')
+  })
+
+  it('throws on custom constraint with empty description', () => {
+    const input = JSON.stringify({
+      fields: [baseField],
+      constraints: [{ type: 'custom', description: '' }],
+    })
+    expect(() => parseSchemaResponse(input)).toThrow('invalid')
+  })
+
+  it('throws on conditional_null with non-string whenValue', () => {
+    const input = JSON.stringify({
+      fields: [baseField],
+      constraints: [{ type: 'conditional_null', field: 'x', whenField: 'y', whenValue: 123 }],
+    })
+    expect(() => parseSchemaResponse(input)).toThrow('invalid')
+  })
+
+  it('throws on unique constraint with empty field name', () => {
+    const input = JSON.stringify({
+      fields: [baseField],
+      constraints: [{ type: 'unique', field: '' }],
+    })
+    expect(() => parseSchemaResponse(input)).toThrow('invalid')
+  })
+})

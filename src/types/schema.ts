@@ -28,8 +28,57 @@ export interface SchemaField {
   typeOptions: TypeOptions
 }
 
+// ─── Constraints ─────────────────────────────────────────────────────────────
+
+export type ConstraintType = 'comparison' | 'conditional_null' | 'unique' | 'custom'
+
+export type ComparisonOperator = '>' | '<' | '>='
+
+export interface ComparisonConstraint {
+  id: string
+  type: 'comparison'
+  fieldA: string
+  operator: ComparisonOperator
+  fieldB: string
+}
+
+export interface ConditionalNullConstraint {
+  id: string
+  type: 'conditional_null'
+  field: string
+  whenField: string
+  whenValue: string
+}
+
+export interface UniqueConstraint {
+  id: string
+  type: 'unique'
+  field: string
+}
+
+export interface CustomConstraint {
+  id: string
+  type: 'custom'
+  description: string
+}
+
+export type Constraint =
+  | ComparisonConstraint
+  | ConditionalNullConstraint
+  | UniqueConstraint
+  | CustomConstraint
+
+export type ExportedConstraint =
+  | Omit<ComparisonConstraint, 'id'>
+  | Omit<ConditionalNullConstraint, 'id'>
+  | Omit<UniqueConstraint, 'id'>
+  | Omit<CustomConstraint, 'id'>
+
+// ─── State ───────────────────────────────────────────────────────────────────
+
 export interface SchemaState {
   fields: SchemaField[]
+  constraints: Constraint[]
 }
 
 export type SchemaAction =
@@ -37,7 +86,12 @@ export type SchemaAction =
   | { type: 'REMOVE_FIELD'; payload: { id: string } }
   | { type: 'UPDATE_FIELD'; payload: { id: string; updates: Partial<Omit<SchemaField, 'id'>> } }
   | { type: 'UPDATE_TYPE'; payload: { id: string; fieldType: FieldType } }
-  | { type: 'SET_SCHEMA'; payload: { fields: SchemaField[] } }
+  | { type: 'SET_SCHEMA'; payload: { fields: SchemaField[]; constraints?: Constraint[] } }
+  | { type: 'ADD_CONSTRAINT'; payload: { constraintType: ConstraintType } }
+  | { type: 'REMOVE_CONSTRAINT'; payload: { id: string } }
+  | { type: 'UPDATE_CONSTRAINT'; payload: { id: string; updates: Partial<Omit<Constraint, 'id' | 'type'>> } }
+
+// ─── Export ───────────────────────────────────────────────────────────────────
 
 export interface ExportedField {
   name: string
@@ -48,4 +102,5 @@ export interface ExportedField {
 
 export interface ExportedSchema {
   fields: ExportedField[]
+  constraints: ExportedConstraint[]
 }

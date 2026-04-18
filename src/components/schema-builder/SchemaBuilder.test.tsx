@@ -66,7 +66,7 @@ describe('SchemaBuilder', () => {
     const user = userEvent.setup()
     render(<WrappedSchemaBuilder />)
     await user.click(screen.getByRole('button', { name: /add field/i }))
-    const typeSelect = screen.getByRole('combobox')
+    const typeSelect = screen.getByRole('combobox', { name: /field type/i })
     await user.selectOptions(typeSelect, 'integer')
     expect(screen.getByLabelText(/min/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/max/i)).toBeInTheDocument()
@@ -76,7 +76,7 @@ describe('SchemaBuilder', () => {
     const user = userEvent.setup()
     render(<WrappedSchemaBuilder />)
     await user.click(screen.getByRole('button', { name: /add field/i }))
-    const typeSelect = screen.getByRole('combobox')
+    const typeSelect = screen.getByRole('combobox', { name: /field type/i })
     await user.selectOptions(typeSelect, 'float')
     expect(screen.getByLabelText(/min/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/max/i)).toBeInTheDocument()
@@ -86,7 +86,7 @@ describe('SchemaBuilder', () => {
     const user = userEvent.setup()
     render(<WrappedSchemaBuilder />)
     await user.click(screen.getByRole('button', { name: /add field/i }))
-    await user.selectOptions(screen.getByRole('combobox'), 'date')
+    await user.selectOptions(screen.getByRole('combobox', { name: /field type/i }), 'date')
     expect(screen.getByLabelText(/format/i)).toBeInTheDocument()
   })
 
@@ -94,7 +94,7 @@ describe('SchemaBuilder', () => {
     const user = userEvent.setup()
     render(<WrappedSchemaBuilder />)
     await user.click(screen.getByRole('button', { name: /add field/i }))
-    await user.selectOptions(screen.getByRole('combobox'), 'enum')
+    await user.selectOptions(screen.getByRole('combobox', { name: /field type/i }), 'enum')
     expect(screen.getByLabelText(/values/i)).toBeInTheDocument()
   })
 
@@ -102,7 +102,7 @@ describe('SchemaBuilder', () => {
     const user = userEvent.setup()
     render(<WrappedSchemaBuilder />)
     await user.click(screen.getByRole('button', { name: /add field/i }))
-    await user.selectOptions(screen.getByRole('combobox'), 'boolean')
+    await user.selectOptions(screen.getByRole('combobox', { name: /field type/i }), 'boolean')
     expect(screen.queryByLabelText(/min/i)).not.toBeInTheDocument()
     expect(screen.queryByLabelText(/format/i)).not.toBeInTheDocument()
     expect(screen.queryByLabelText(/values/i)).not.toBeInTheDocument()
@@ -148,7 +148,7 @@ describe('SchemaBuilder', () => {
     const user = userEvent.setup()
     render(<WrappedSchemaBuilder />)
     await user.click(screen.getByRole('button', { name: /add field/i }))
-    const typeSelect = screen.getByRole('combobox') as HTMLSelectElement
+    const typeSelect = screen.getByRole('combobox', { name: /field type/i }) as HTMLSelectElement
     expect(typeSelect.value).toBe('string')
     await user.selectOptions(typeSelect, 'integer')
     expect(typeSelect.value).toBe('integer')

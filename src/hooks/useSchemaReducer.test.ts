@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { schemaReducer, initialState } from './useSchemaReducer'
-import type { SchemaState, SchemaAction } from '../types/schema'
+import type { SchemaState, SchemaAction, ComparisonConstraint, CustomConstraint, Constraint } from '../types/schema'
 
 describe('schemaReducer', () => {
   describe('ADD_FIELD', () => {
@@ -172,6 +172,42 @@ describe('exportSchema', () => {
     const result = exportSchema(state)
     expect(() => JSON.stringify(result)).not.toThrow()
   })
+
+  it('includes constraints array in export', async () => {
+    const { exportSchema } = await import('../lib/exportSchema')
+    let state: SchemaState = schemaReducer(initialState, { type: 'ADD_FIELD' })
+    state = schemaReducer(state, {
+      type: 'ADD_CONSTRAINT',
+      payload: { constraintType: 'unique' },
+    })
+    const result = exportSchema(state)
+    expect(Array.isArray(result.constraints)).toBe(true)
+    expect(result.constraints).toHaveLength(1)
+    expect(result.constraints[0].type).toBe('unique')
+  })
+
+  it('strips id from exported constraints', async () => {
+    const { exportSchema } = await import('../lib/exportSchema')
+    let state: SchemaState = schemaReducer(initialState, { type: 'ADD_FIELD' })
+    state = schemaReducer(state, {
+      type: 'ADD_CONSTRAINT',
+      payload: { constraintType: 'custom' },
+    })
+    state = schemaReducer(state, {
+      type: 'UPDATE_CONSTRAINT',
+      payload: { id: state.constraints[0].id, updates: { description: 'test rule' } },
+    })
+    const result = exportSchema(state)
+    expect(result.constraints[0]).not.toHaveProperty('id')
+    expect((result.constraints[0] as { description: string }).description).toBe('test rule')
+  })
+
+  it('exports empty constraints array when no constraints exist', async () => {
+    const { exportSchema } = await import('../lib/exportSchema')
+    const state: SchemaState = schemaReducer(initialState, { type: 'ADD_FIELD' })
+    const result = exportSchema(state)
+    expect(result.constraints).toEqual([])
+  })
 })
 
 describe('schemaReducer — exhaustive default (HIGH-2)', () => {
@@ -186,3 +222,212 @@ describe('schemaReducer — exhaustive default (HIGH-2)', () => {
 // Type-check: SchemaAction discriminated union compiles
 const _action: SchemaAction = { type: 'ADD_FIELD' }
 void _action
+
+// ─── Constraint actions ───────────────────────────────────────────────────────
+
+describe('initialState', () => {
+  it('has empty constraints array', () => {
+    expect(initialState.constraints).toEqual([])
+  })
+})
+
+describe('ADD_CONSTRAINT', () => {
+  it('adds a comparison constraint with default operator', () => {
+    const state = schemaReducer(initialState, {
+      type: 'ADD_CONSTRAINT',
+      payload: { constraintType: 'comparison' },
+    })
+    expect(state.constraints).toHaveLength(1)
+    expect(state.constraints[0].type).toBe('comparison')
+    expect((state.constraints[0] as ComparisonConstraint).operator).toBe('>')
+  })
+
+  it('adds a conditional_null constraint', () => {
+    const state = schemaReducer(initialState, {
+      type: 'ADD_CONSTRAINT',
+      payload: { constraintType: 'conditional_null' },
+    })
+    expect(state.constraints[0].type).toBe('conditional_null')
+  })
+
+  it('adds a unique constraint', () => {
+    const state = schemaReducer(initialState, {
+      type: 'ADD_CONSTRAINT',
+      payload: { constraintType: 'unique' },
+    })
+    expect(state.constraints[0].type).toBe('unique')
+  })
+
+  it('adds a custom constraint with empty description', () => {
+    const state = schemaReducer(initialState, {
+      type: 'ADD_CONSTRAINT',
+      payload: { constraintType: 'custom' },
+    })
+    expect(state.constraints[0].type).toBe('custom')
+    expect((state.constraints[0] as CustomConstraint).description).toBe('')
+  })
+
+  it('assigns unique ids to each constraint', () => {
+    let state = schemaReducer(initialState, {
+      type: 'ADD_CONSTRAINT',
+      payload: { constraintType: 'unique' },
+    })
+    state = schemaReducer(state, {
+      type: 'ADD_CONSTRAINT',
+      payload: { constraintType: 'custom' },
+    })
+    expect(state.constraints[0].id).not.toBe(state.constraints[1].id)
+  })
+
+  it('does not mutate the fields array', () => {
+    const state = schemaReducer(initialState, { type: 'ADD_FIELD' })
+    const fieldsBefore = state.fields
+    const next = schemaReducer(state, {
+      type: 'ADD_CONSTRAINT',
+      payload: { constraintType: 'custom' },
+    })
+    expect(next.fields).toBe(fieldsBefore)
+  })
+})
+
+describe('REMOVE_CONSTRAINT', () => {
+  it('removes the constraint with the given id', () => {
+    let state = schemaReducer(initialState, {
+      type: 'ADD_CONSTRAINT',
+      payload: { constraintType: 'custom' },
+    })
+    state = schemaReducer(state, {
+      type: 'ADD_CONSTRAINT',
+      payload: { constraintType: 'unique' },
+    })
+    const idToRemove = state.constraints[0].id
+    state = schemaReducer(state, {
+      type: 'REMOVE_CONSTRAINT',
+      payload: { id: idToRemove },
+    })
+    expect(state.constraints).toHaveLength(1)
+    expect(state.constraints[0].id).not.toBe(idToRemove)
+  })
+
+  it('is a no-op for unknown id', () => {
+    const state = schemaReducer(initialState, {
+      type: 'ADD_CONSTRAINT',
+      payload: { constraintType: 'custom' },
+    })
+    const next = schemaReducer(state, {
+      type: 'REMOVE_CONSTRAINT',
+      payload: { id: 'ghost' },
+    })
+    expect(next.constraints).toHaveLength(1)
+  })
+
+  it('does not mutate fields array', () => {
+    let state = schemaReducer(initialState, { type: 'ADD_FIELD' })
+    state = schemaReducer(state, {
+      type: 'ADD_CONSTRAINT',
+      payload: { constraintType: 'custom' },
+    })
+    const fieldsBefore = state.fields
+    const next = schemaReducer(state, {
+      type: 'REMOVE_CONSTRAINT',
+      payload: { id: state.constraints[0].id },
+    })
+    expect(next.fields).toBe(fieldsBefore)
+  })
+})
+
+describe('UPDATE_CONSTRAINT', () => {
+  it('updates the description of a custom constraint', () => {
+    let state = schemaReducer(initialState, {
+      type: 'ADD_CONSTRAINT',
+      payload: { constraintType: 'custom' },
+    })
+    const id = state.constraints[0].id
+    state = schemaReducer(state, {
+      type: 'UPDATE_CONSTRAINT',
+      payload: { id, updates: { description: 'salary matches seniority' } },
+    })
+    expect((state.constraints[0] as CustomConstraint).description).toBe('salary matches seniority')
+  })
+
+  it('updates the operator of a comparison constraint', () => {
+    let state = schemaReducer(initialState, {
+      type: 'ADD_CONSTRAINT',
+      payload: { constraintType: 'comparison' },
+    })
+    const id = state.constraints[0].id
+    state = schemaReducer(state, {
+      type: 'UPDATE_CONSTRAINT',
+      payload: { id, updates: { operator: '<' } },
+    })
+    expect((state.constraints[0] as ComparisonConstraint).operator).toBe('<')
+  })
+
+  it('is a no-op for unknown id', () => {
+    let state = schemaReducer(initialState, {
+      type: 'ADD_CONSTRAINT',
+      payload: { constraintType: 'custom' },
+    })
+    const before = (state.constraints[0] as CustomConstraint).description
+    state = schemaReducer(state, {
+      type: 'UPDATE_CONSTRAINT',
+      payload: { id: 'ghost', updates: { description: 'nope' } },
+    })
+    expect((state.constraints[0] as CustomConstraint).description).toBe(before)
+  })
+
+  it('preserves the type of the constraint', () => {
+    let state = schemaReducer(initialState, {
+      type: 'ADD_CONSTRAINT',
+      payload: { constraintType: 'custom' },
+    })
+    const id = state.constraints[0].id
+    state = schemaReducer(state, {
+      type: 'UPDATE_CONSTRAINT',
+      payload: { id, updates: {} },
+    })
+    expect(state.constraints[0].type).toBe('custom')
+  })
+})
+
+describe('field actions preserve constraints', () => {
+  it('ADD_FIELD does not reset constraints', () => {
+    let state = schemaReducer(initialState, {
+      type: 'ADD_CONSTRAINT',
+      payload: { constraintType: 'custom' },
+    })
+    state = schemaReducer(state, { type: 'ADD_FIELD' })
+    expect(state.constraints).toHaveLength(1)
+  })
+
+  it('REMOVE_FIELD does not reset constraints', () => {
+    let state = schemaReducer(initialState, { type: 'ADD_FIELD' })
+    state = schemaReducer(state, {
+      type: 'ADD_CONSTRAINT',
+      payload: { constraintType: 'custom' },
+    })
+    state = schemaReducer(state, {
+      type: 'REMOVE_FIELD',
+      payload: { id: state.fields[0].id },
+    })
+    expect(state.constraints).toHaveLength(1)
+  })
+
+  it('SET_SCHEMA with constraints sets them', () => {
+    const constraint: Constraint = { id: 'c1', type: 'unique', field: 'email' }
+    const state = schemaReducer(initialState, {
+      type: 'SET_SCHEMA',
+      payload: { fields: [], constraints: [constraint] },
+    })
+    expect(state.constraints).toHaveLength(1)
+    expect(state.constraints[0].type).toBe('unique')
+  })
+
+  it('SET_SCHEMA without constraints defaults to empty array', () => {
+    const state = schemaReducer(initialState, {
+      type: 'SET_SCHEMA',
+      payload: { fields: [] },
+    })
+    expect(state.constraints).toEqual([])
+  })
+})

@@ -5,6 +5,7 @@ import { Card } from '../ui/Card'
 import { Button } from '../ui/Button'
 import { FieldRow } from './FieldRow'
 import { SchemaPreview } from './SchemaPreview'
+import { ConstraintEditor } from './ConstraintEditor'
 
 interface SchemaBuilderProps {
   state: SchemaState
@@ -58,6 +59,14 @@ export function SchemaBuilder({ state, dispatch }: SchemaBuilderProps) {
           </div>
         )}
       </Card>
+
+      {/* Constraint editor */}
+      <div className="mt-6">
+        <p className="text-xs font-mono text-[var(--color-text-muted)] uppercase tracking-wider mb-3">
+          Constraints
+        </p>
+        <ConstraintEditor state={state} dispatch={dispatch} />
+      </div>
 
       {/* JSON preview */}
       {showPreview && <SchemaPreview state={state} />}

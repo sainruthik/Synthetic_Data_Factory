@@ -1,4 +1,4 @@
-import type { SchemaField, SchemaState, ExportedSchema } from '../types/schema'
+import type { SchemaField, SchemaState, ExportedSchema, ExportedConstraint } from '../types/schema'
 
 export function exportSchema(state: SchemaState): ExportedSchema {
   return {
@@ -8,5 +8,9 @@ export function exportSchema(state: SchemaState): ExportedSchema {
       nullable,
       options: typeOptions,
     })),
+    constraints: state.constraints.map(c => {
+      const { id: _id, ...rest } = c
+      return rest as ExportedConstraint
+    }),
   }
 }

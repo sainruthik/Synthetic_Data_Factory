@@ -7,25 +7,30 @@ import {
   createDefaultField,
   getDefaultTypeOptions,
 } from '../components/schema-builder/field-defaults'
+import {
+  createDefaultConstraint,
+} from '../components/schema-builder/constraint-defaults'
 export { exportSchema } from '../lib/exportSchema'
 
-export const initialState: SchemaState = { fields: [] }
+export const initialState: SchemaState = { fields: [], constraints: [] }
 
 export function schemaReducer(state: SchemaState, action: SchemaAction): SchemaState {
   switch (action.type) {
     case 'ADD_FIELD': {
       const index = state.fields.length + 1
-      return { fields: [...state.fields, createDefaultField(index)] }
+      return { ...state, fields: [...state.fields, createDefaultField(index)] }
     }
 
     case 'REMOVE_FIELD': {
       return {
+        ...state,
         fields: state.fields.filter(f => f.id !== action.payload.id),
       }
     }
 
     case 'UPDATE_FIELD': {
       return {
+        ...state,
         fields: state.fields.map(f =>
           f.id === action.payload.id
             ? { ...f, ...action.payload.updates }
@@ -36,6 +41,7 @@ export function schemaReducer(state: SchemaState, action: SchemaAction): SchemaS
 
     case 'UPDATE_TYPE': {
       return {
+        ...state,
         fields: state.fields.map(f =>
           f.id === action.payload.id
             ? { ...f, type: action.payload.fieldType, typeOptions: getDefaultTypeOptions(action.payload.fieldType) }
@@ -45,7 +51,33 @@ export function schemaReducer(state: SchemaState, action: SchemaAction): SchemaS
     }
 
     case 'SET_SCHEMA': {
-      return { fields: action.payload.fields }
+      return {
+        fields: action.payload.fields,
+        constraints: action.payload.constraints ?? [],
+      }
+    }
+
+    case 'ADD_CONSTRAINT': {
+      const constraint = createDefaultConstraint(action.payload.constraintType, state.fields)
+      return { ...state, constraints: [...state.constraints, constraint] }
+    }
+
+    case 'REMOVE_CONSTRAINT': {
+      return {
+        ...state,
+        constraints: state.constraints.filter(c => c.id !== action.payload.id),
+      }
+    }
+
+    case 'UPDATE_CONSTRAINT': {
+      return {
+        ...state,
+        constraints: state.constraints.map(c =>
+          c.id === action.payload.id
+            ? { ...c, ...action.payload.updates }
+            : c
+        ),
+      }
     }
 
     default: {

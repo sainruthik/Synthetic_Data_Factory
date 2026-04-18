@@ -11,6 +11,7 @@ const mockCallClaude = vi.mocked(callClaude)
 
 const validSchemaJson = JSON.stringify({
   fields: [{ name: 'id', type: 'uuid', nullable: 0, options: null }],
+  constraints: [],
 })
 
 beforeEach(() => {
@@ -172,5 +173,22 @@ describe('useChat', () => {
     act(() => { result.current.sendMessage('   ') })
     expect(result.current.messages).toHaveLength(0)
     expect(mockCallClaude).not.toHaveBeenCalled()
+  })
+
+  it('passes constraints from Claude response through to onSchema', async () => {
+    const schemaWithConstraints = JSON.stringify({
+      fields: [{ name: 'age', type: 'integer', nullable: 0, options: { min: 0, max: 120 } }],
+      constraints: [{ type: 'unique', field: 'email' }],
+    })
+    mockCallClaude.mockResolvedValue(schemaWithConstraints)
+    const onSchema = vi.fn()
+    const { result } = renderHook(() => useChat({ onSchema }))
+
+    await act(async () => { result.current.sendMessage('create user table') })
+
+    expect(onSchema).toHaveBeenCalledOnce()
+    const schema = onSchema.mock.calls[0][0]
+    expect(schema.constraints).toHaveLength(1)
+    expect(schema.constraints[0].type).toBe('unique')
   })
 })

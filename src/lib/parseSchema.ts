@@ -1,23 +1,15 @@
-import type { ExportedSchema, ExportedField } from '../types/schema'
+import type { ExportedSchema, ExportedField, ExportedConstraint } from '../types/schema'
 import { FIELD_TYPES } from '../types/schema'
 
-/**
- * Extracts JSON from a Claude/OpenAI response that may be wrapped in markdown code fences.
- * Returns the raw JSON string.
- */
+const VALID_OPERATORS = ['>', '<', '>='] as const
+
 function extractJson(text: string): string {
-  // Strip markdown code fences: ```json ... ``` or ``` ... ```
   const fenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/)
   if (fenceMatch) return fenceMatch[1].trim()
   return text.trim()
 }
 
-/**
- * Validates that the options object matches the expected shape for the given field type.
- * Returns true if valid, false otherwise.
- */
 function isValidOptions(type: ExportedField['type'], options: unknown): boolean {
-  // null is always acceptable (means "no options")
   if (options === null || options === undefined) return true
   if (typeof options !== 'object' || Array.isArray(options)) return false
 
@@ -37,7 +29,6 @@ function isValidOptions(type: ExportedField['type'], options: unknown): boolean 
         (o.options as unknown[]).every((v) => typeof v === 'string')
       )
 
-    // These types do not support options — non-null options are invalid
     default:
       return false
   }
@@ -53,10 +44,33 @@ function isValidField(field: unknown): field is ExportedField {
   return true
 }
 
-/**
- * Parses and validates a Claude/OpenAI response string into an ExportedSchema.
- * Throws a descriptive Error if the response is not valid.
- */
+function isValidConstraint(c: unknown): c is ExportedConstraint {
+  if (typeof c !== 'object' || c === null) return false
+  const obj = c as Record<string, unknown>
+  if (typeof obj.type !== 'string') return false
+
+  switch (obj.type) {
+    case 'comparison':
+      return (
+        typeof obj.fieldA === 'string' && obj.fieldA.trim() !== '' &&
+        typeof obj.fieldB === 'string' && obj.fieldB.trim() !== '' &&
+        (VALID_OPERATORS as readonly string[]).includes(obj.operator as string)
+      )
+    case 'conditional_null':
+      return (
+        typeof obj.field === 'string' && obj.field.trim() !== '' &&
+        typeof obj.whenField === 'string' && obj.whenField.trim() !== '' &&
+        typeof obj.whenValue === 'string'
+      )
+    case 'unique':
+      return typeof obj.field === 'string' && obj.field.trim() !== ''
+    case 'custom':
+      return typeof obj.description === 'string' && obj.description.trim() !== ''
+    default:
+      return false
+  }
+}
+
 export function parseSchemaResponse(text: string): ExportedSchema {
   const jsonText = extractJson(text)
 
@@ -77,13 +91,26 @@ export function parseSchemaResponse(text: string): ExportedSchema {
     throw new Error('Claude response is missing a "fields" array.')
   }
 
-  const invalidIndex = obj.fields.findIndex((f: unknown) => !isValidField(f))
-  if (invalidIndex !== -1) {
+  const invalidFieldIndex = obj.fields.findIndex((f: unknown) => !isValidField(f))
+  if (invalidFieldIndex !== -1) {
     throw new Error(
-      `Field at index ${invalidIndex} is invalid. Each field must have name (string), ` +
+      `Field at index ${invalidFieldIndex} is invalid. Each field must have name (string), ` +
       `type (one of: ${FIELD_TYPES.join(', ')}), nullable (0–100), and valid options for its type.`
     )
   }
 
-  return { fields: obj.fields as ExportedField[] }
+  const rawConstraints = Array.isArray(obj.constraints) ? obj.constraints : []
+  const invalidConstraintIndex = rawConstraints.findIndex((c: unknown) => !isValidConstraint(c))
+  if (invalidConstraintIndex !== -1) {
+    throw new Error(
+      `Constraint at index ${invalidConstraintIndex} is invalid. ` +
+      `Each constraint must have a valid type (comparison, conditional_null, unique, custom) ` +
+      `with required fields for that type.`
+    )
+  }
+
+  return {
+    fields: obj.fields as ExportedField[],
+    constraints: rawConstraints as ExportedConstraint[],
+  }
 }

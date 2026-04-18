@@ -18,7 +18,8 @@ The JSON must match this exact shape:
       "nullable": <0-100>,
       "options": <null or type-specific options object>
     }
-  ]
+  ],
+  "constraints": []
 }
 
 Valid types: string, integer, float, boolean, date, email, phone, uuid, enum
@@ -30,6 +31,16 @@ Type-specific options:
 - All other types: null
 
 nullable is a number from 0 (never null) to 100 (always null), representing the percentage of rows that will be null for this field.
+
+CONSTRAINTS (include when the user describes rules between fields):
+Each constraint in the "constraints" array must be one of these shapes:
+- Comparison (integer/float/date fields only): { "type": "comparison", "fieldA": "<name>", "operator": ">" | "<" | ">=", "fieldB": "<name>" }
+- Conditional null: { "type": "conditional_null", "field": "<name>", "whenField": "<name>", "whenValue": "<value>" }
+- Unique: { "type": "unique", "field": "<name>" }
+- Custom rule: { "type": "custom", "description": "<rule description>" }
+
+IMPORTANT: fieldA, fieldB, field, and whenField MUST exactly match a "name" from the fields array.
+Return "constraints": [] when no constraints are needed.
 
 Return ONLY the JSON object. Do not wrap it in code fences or add any surrounding text.`
 
