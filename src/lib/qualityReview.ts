@@ -1,7 +1,6 @@
 import type { ExportedSchema } from '../types/schema'
 import type {
   QualityJudgment,
-  FixResponse,
   RowFix,
   SampleResult,
   FlaggedRow,
