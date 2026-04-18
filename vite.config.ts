@@ -5,13 +5,11 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
 
-  // [HIGH-1] Prevent accidental production builds with the API key baked into the bundle.
-  // The VITE_ prefix causes Vite to embed the value in client-side JS at build time.
-  // In production, requests must go through a server-side proxy that holds the key.
-  if (mode === 'production' && env.VITE_OPENAI_API_KEY) {
+  // Fail fast if the API key is missing in production (e.g. Vercel env var not configured).
+  if (mode === 'production' && !env.VITE_OPENAI_API_KEY) {
     throw new Error(
-      '[security] VITE_OPENAI_API_KEY must not be set during production builds. ' +
-      'Use a server-side proxy instead and remove this variable from .env.production.'
+      '[deploy] VITE_OPENAI_API_KEY is not set. ' +
+      'Add it to your Vercel environment variables before deploying.'
     )
   }
 
