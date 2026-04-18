@@ -69,12 +69,12 @@ Scoring guide:
 
 Common issues to flag:
 - Age/experience mismatch (e.g., 25-year-old with 15 years experience)
-- Salary/seniority mismatch (e.g., junior engineer at $180k)
+- Salary/seniority mismatch — ONLY flag extreme, obvious discrepancies (e.g., $200k+ for a junior/entry-level role, or $25k for a principal/director). Do NOT invent specific numeric thresholds that are not in the schema constraints.
 - Status/date inconsistency (e.g., terminated employee with no termination_date)
 - Logically impossible ranges or combinations
 - Null values in fields that should never be null given other field values
 
-Only flag rows that have clear, explainable problems. Do not flag rows that are merely unusual but plausible.`
+IMPORTANT: Do not fabricate thresholds or rules that are not explicitly defined in the schema constraints. A salary that is merely at the lower end of a range for a seniority level is NOT an issue unless it violates an explicit constraint. When in doubt, do not flag.`
 }
 
 export function buildJudgeUserMessage(

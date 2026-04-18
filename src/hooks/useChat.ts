@@ -4,7 +4,7 @@ import type { ExportedSchema } from '../types/schema'
 import { callClaude } from '../lib/api'
 import { parseSchemaResponse } from '../lib/parseSchema'
 
-const SYSTEM_PROMPT = `You are a synthetic data schema designer.
+export const SYSTEM_PROMPT = `You are a synthetic data schema designer.
 The user will describe the dataset they need in natural language.
 Your ONLY job is to return a valid JSON schema for that dataset.
 
@@ -32,12 +32,21 @@ Type-specific options:
 
 nullable is a number from 0 (never null) to 100 (always null), representing the percentage of rows that will be null for this field.
 
-CONSTRAINTS (include when the user describes rules between fields):
+CONSTRAINTS — Actively scan the user's message for any rules, conditions, or restrictions between fields and convert them to constraints.
+
 Each constraint in the "constraints" array must be one of these shapes:
 - Comparison (integer/float/date fields only): { "type": "comparison", "fieldA": "<name>", "operator": ">" | "<" | ">=", "fieldB": "<name>" }
 - Conditional null: { "type": "conditional_null", "field": "<name>", "whenField": "<name>", "whenValue": "<value>" }
 - Unique: { "type": "unique", "field": "<name>" }
 - Custom rule: { "type": "custom", "description": "<rule description>" }
+
+Natural language → constraint type mapping examples:
+- "delivery_date must be after order_date" → comparison: { "type": "comparison", "fieldA": "delivery_date", "operator": ">", "fieldB": "order_date" }
+- "termination_date is null unless status is terminated" → conditional_null: { "type": "conditional_null", "field": "termination_date", "whenField": "status", "whenValue": "terminated" }
+- "junior employees must have salary below 80000" → custom: { "type": "custom", "description": "junior employees must have salary below 80000" }
+- "end_date must be after start_date" → comparison with operator ">"
+- "field is null when other_field equals value" → conditional_null
+- "salary must be below X for role Y" → custom rule
 
 IMPORTANT: fieldA, fieldB, field, and whenField MUST exactly match a "name" from the fields array.
 Return "constraints": [] when no constraints are needed.

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, act, waitFor } from '@testing-library/react'
-import { useChat } from '../useChat'
+import { useChat, SYSTEM_PROMPT } from '../useChat'
 
 vi.mock('../../lib/api', () => ({
   callClaude: vi.fn(),
@@ -173,6 +173,37 @@ describe('useChat', () => {
     act(() => { result.current.sendMessage('   ') })
     expect(result.current.messages).toHaveLength(0)
     expect(mockCallClaude).not.toHaveBeenCalled()
+  })
+
+  // RED: SYSTEM_PROMPT constraint extraction tests
+  it('SYSTEM_PROMPT is exported', () => {
+    // Import tested at module level below
+    expect(typeof SYSTEM_PROMPT).toBe('string')
+  })
+
+  it('SYSTEM_PROMPT instructs to scan natural language for rules', () => {
+    expect(SYSTEM_PROMPT).toMatch(/scan|identify|detect|look for|find/i)
+    expect(SYSTEM_PROMPT).toMatch(/rule|condition|restriction|constraint/i)
+  })
+
+  it('SYSTEM_PROMPT gives comparison constraint example with field ordering', () => {
+    expect(SYSTEM_PROMPT).toMatch(/delivery_date.*after.*order_date|order_date.*before.*delivery_date/i)
+  })
+
+  it('SYSTEM_PROMPT gives conditional_null example with business language', () => {
+    expect(SYSTEM_PROMPT).toMatch(/termination_date.*null.*unless|null.*unless.*status/i)
+  })
+
+  it('SYSTEM_PROMPT gives custom constraint example for business rules', () => {
+    expect(SYSTEM_PROMPT).toMatch(/junior|salary.*below|below.*salary/i)
+  })
+
+  it('SYSTEM_PROMPT maps natural language "must be after" to comparison type', () => {
+    expect(SYSTEM_PROMPT).toMatch(/must be after|after.*comparison|comparison.*after/i)
+  })
+
+  it('SYSTEM_PROMPT maps "is null unless" to conditional_null type', () => {
+    expect(SYSTEM_PROMPT).toMatch(/is null unless|conditional_null/i)
   })
 
   it('passes constraints from Claude response through to onSchema', async () => {

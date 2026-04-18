@@ -2,9 +2,11 @@ import { useState, useCallback } from 'react'
 import { generateDataset, type GenerationResult } from '../engine/generateDataset'
 import { exportDataset } from '../engine/export'
 import { exportSchema } from '../lib/exportSchema'
+import { useAiGenerate, MAX_AI_ROWS } from './useAiGenerate'
 import type { SchemaState, SchemaField, ExportedSchema } from '../types/schema'
 
 export type { OutputFormat } from '../engine/writers'
+export type GenMode = 'faker' | 'ai'
 
 interface GenerateState {
   result: GenerationResult | null
@@ -16,6 +18,8 @@ export function useGenerate() {
   const [state, setState] = useState<GenerateState>({ result: null, isGenerating: false, error: null })
   const [rowCount, setRowCount] = useState(100)
   const [seed, setSeed] = useState(() => Math.floor(Math.random() * 999999))
+  const [genMode, setGenMode] = useState<GenMode>('faker')
+  const aiGenerate = useAiGenerate()
 
   // Format & export options
   const [format, setFormat] = useState<import('../engine/writers').OutputFormat>('jsonl')
@@ -32,14 +36,32 @@ export function useGenerate() {
   const [lastSchema, setLastSchema] = useState<SchemaField[] | null>(null)
   const [lastExportedSchema, setLastExportedSchema] = useState<ExportedSchema | null>(null)
 
-  const generate = useCallback((schemaState: SchemaState) => {
+  const generate = useCallback(async (schemaState: SchemaState) => {
     if (schemaState.fields.length === 0) {
       setState({ result: null, isGenerating: false, error: 'Add at least one field before generating.' })
       return
     }
+    const schema = exportSchema(schemaState)
+
+    if (genMode === 'ai') {
+      setState({ result: null, isGenerating: true, error: null })
+      try {
+        const rows = await aiGenerate.generateRows(schema, rowCount)
+        setState({ result: { rows, violations: [] }, isGenerating: false, error: null })
+        setLastSchema(schemaState.fields)
+        setLastExportedSchema(schema)
+      } catch (err) {
+        setState({
+          result: null,
+          isGenerating: false,
+          error: err instanceof Error ? err.message : 'AI generation failed',
+        })
+      }
+      return
+    }
+
     setState({ result: null, isGenerating: true, error: null })
     try {
-      const schema = exportSchema(schemaState)
       const result = generateDataset(schema, rowCount, seed)
       setState({ result, isGenerating: false, error: null })
       setLastSchema(schemaState.fields)
@@ -51,7 +73,7 @@ export function useGenerate() {
         error: err instanceof Error ? err.message : 'Generation failed',
       })
     }
-  }, [rowCount, seed])
+  }, [rowCount, seed, genMode, aiGenerate])
 
   const randomizeSeed = useCallback(() => {
     setSeed(Math.floor(Math.random() * 999999))
@@ -95,5 +117,8 @@ export function useGenerate() {
     exportError, exportStatus, exportFilename, exportData,
     generate, patchRows,
     lastExportedSchema,
+    genMode, setGenMode,
+    aiProgress: aiGenerate.progress,
+    maxAiRows: MAX_AI_ROWS,
   }
 }

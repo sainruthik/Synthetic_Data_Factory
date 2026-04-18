@@ -1,4 +1,4 @@
-import type { OutputFormat } from '../../hooks/useGenerate'
+import type { OutputFormat, GenMode } from '../../hooks/useGenerate'
 
 interface GenerateControlsProps {
   rowCount: number
@@ -17,6 +17,10 @@ interface GenerateControlsProps {
   onIncludeCreateChange: (b: boolean) => void
   csvBom: boolean
   onCsvBomChange: (b: boolean) => void
+  genMode: GenMode
+  onGenModeChange: (m: GenMode) => void
+  aiProgress: string | null
+  maxAiRows: number
 }
 
 const inputCls = 'px-3 py-2 font-mono text-sm border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] rounded focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]'
@@ -30,40 +34,78 @@ export function GenerateControls({
   tableName, onTableNameChange,
   includeCreate, onIncludeCreateChange,
   csvBom, onCsvBomChange,
+  genMode, onGenModeChange,
+  aiProgress, maxAiRows,
 }: GenerateControlsProps) {
+  const isAi = genMode === 'ai'
+
   return (
     <div className="space-y-4">
+      {/* Mode toggle */}
+      <div className="flex flex-col gap-1">
+        <label className={labelCls}>Generation mode</label>
+        <div className="flex gap-1">
+          <button
+            onClick={() => onGenModeChange('faker')}
+            className={`px-4 py-1.5 font-mono text-xs font-semibold rounded border transition-colors ${
+              !isAi
+                ? 'border-[var(--color-accent)] bg-[var(--color-accent)] text-white'
+                : 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]'
+            }`}
+          >
+            Fast (Faker)
+          </button>
+          <button
+            onClick={() => onGenModeChange('ai')}
+            className={`px-4 py-1.5 font-mono text-xs font-semibold rounded border transition-colors ${
+              isAi
+                ? 'border-[var(--color-accent)] bg-[var(--color-accent)] text-white'
+                : 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]'
+            }`}
+          >
+            AI Generate
+          </button>
+        </div>
+        {isAi && (
+          <p className="text-xs font-mono text-amber-600 mt-1">
+            AI mode generates semantically coherent data. Max {maxAiRows} rows per run.
+          </p>
+        )}
+      </div>
+
       <div className="flex flex-wrap gap-4 items-end">
         <div className="flex flex-col gap-1">
           <label className={labelCls}>Rows</label>
           <input
             type="number"
             min={1}
-            max={1000}
+            max={isAi ? maxAiRows : 1000}
             value={rowCount}
-            onChange={e => onRowCountChange(Math.min(1000, Math.max(1, Number(e.target.value))))}
+            onChange={e => onRowCountChange(Math.min(isAi ? maxAiRows : 1000, Math.max(1, Number(e.target.value))))}
             className={`w-24 ${inputCls}`}
           />
         </div>
 
-        <div className="flex flex-col gap-1">
-          <label className={labelCls}>Seed</label>
-          <div className="flex gap-1">
-            <input
-              type="number"
-              value={seed}
-              onChange={e => onSeedChange(Number(e.target.value))}
-              className={`w-28 ${inputCls}`}
-            />
-            <button
-              onClick={onRandomizeSeed}
-              title="Randomize seed"
-              className="px-3 py-2 border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-muted)] rounded hover:text-[var(--color-text)] hover:bg-[var(--color-surface-alt)] transition-colors font-mono text-sm"
-            >
-              ↻
-            </button>
+        {!isAi && (
+          <div className="flex flex-col gap-1">
+            <label className={labelCls}>Seed</label>
+            <div className="flex gap-1">
+              <input
+                type="number"
+                value={seed}
+                onChange={e => onSeedChange(Number(e.target.value))}
+                className={`w-28 ${inputCls}`}
+              />
+              <button
+                onClick={onRandomizeSeed}
+                title="Randomize seed"
+                className="px-3 py-2 border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-muted)] rounded hover:text-[var(--color-text)] hover:bg-[var(--color-surface-alt)] transition-colors font-mono text-sm"
+              >
+                ↻
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="flex flex-col gap-1">
           <label className={labelCls}>Format</label>
@@ -86,7 +128,9 @@ export function GenerateControls({
           disabled={!hasFields || isGenerating}
           className="px-6 py-2 font-mono text-sm font-semibold rounded bg-[var(--color-accent)] text-white hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
         >
-          {isGenerating ? 'Generating…' : 'Generate Data'}
+          {isGenerating
+            ? (aiProgress ?? 'Generating…')
+            : isAi ? 'AI Generate' : 'Generate Data'}
         </button>
       </div>
 

@@ -21,6 +21,7 @@ export function GeneratePage() {
     csvBom, setCsvBom,
     exportError, exportStatus, exportFilename, exportData,
     generate, patchRows, lastExportedSchema,
+    genMode, setGenMode, aiProgress, maxAiRows,
   } = useGenerate()
 
   const handleSchema = (fields: SchemaField[]) => {
@@ -67,7 +68,7 @@ export function GeneratePage() {
             onRandomizeSeed={randomizeSeed}
             format={format}
             onFormatChange={setFormat}
-            onGenerate={() => generate(state)}
+            onGenerate={() => { void generate(state) }}
             isGenerating={genState.isGenerating}
             hasFields={state.fields.length > 0}
             tableName={tableName}
@@ -76,6 +77,10 @@ export function GeneratePage() {
             onIncludeCreateChange={setIncludeCreate}
             csvBom={csvBom}
             onCsvBomChange={setCsvBom}
+            genMode={genMode}
+            onGenModeChange={setGenMode}
+            aiProgress={aiProgress}
+            maxAiRows={maxAiRows}
           />
         </div>
 
