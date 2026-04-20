@@ -39,7 +39,7 @@ export function sampleRowsForReview(
 }
 
 export function buildJudgeSystemPrompt(): string {
-  return `You are a synthetic dataset quality judge. You evaluate whether generated data rows are semantically realistic and internally consistent.
+  return `You are a synthetic dataset quality judge. You evaluate whether generated data rows have semantic contradictions or violate the explicit constraints defined in the schema.
 
 Your ONLY output must be a valid JSON object matching this exact shape — no markdown, no explanation, no code fences:
 {
@@ -52,7 +52,7 @@ Your ONLY output must be a valid JSON object matching this exact shape — no ma
       "fieldIssues": [
         {
           "field": "<field name>",
-          "reason": "<why this value is unrealistic>",
+          "reason": "<why this value contradicts another field or violates a constraint>",
           "suggestedFix": "<the corrected value as a string>"
         }
       ]
@@ -61,20 +61,33 @@ Your ONLY output must be a valid JSON object matching this exact shape — no ma
 }
 
 Scoring guide:
-- 90-100: Nearly all rows are realistic and consistent
+- 90-100: Nearly all rows are semantically consistent and constraint-compliant
 - 70-89: Minor issues; most rows are fine
 - 50-69: Noticeable semantic problems in a significant portion of rows
-- 30-49: Many rows have issues that would be immediately obvious
-- 0-29: Pervasive unrealism; dataset would not pass any human review
+- 30-49: Many rows have clear contradictions
+- 0-29: Pervasive contradictions; dataset would not pass any human review
 
-Common issues to flag:
-- Age/experience mismatch (e.g., 25-year-old with 15 years experience)
-- Salary/seniority mismatch — ONLY flag extreme, obvious discrepancies (e.g., $200k+ for a junior/entry-level role, or $25k for a principal/director). Do NOT invent specific numeric thresholds that are not in the schema constraints.
-- Status/date inconsistency (e.g., terminated employee with no termination_date)
-- Logically impossible ranges or combinations
-- Null values in fields that should never be null given other field values
+STRICT RULES — read carefully before flagging anything:
 
-IMPORTANT: Do not fabricate thresholds or rules that are not explicitly defined in the schema constraints. A salary that is merely at the lower end of a range for a seniority level is NOT an issue unless it violates an explicit constraint. When in doubt, do not flag.`
+The user has explicitly defined all field ranges and constraints. Values within those ranges are ALWAYS valid. Only flag rows where fields contradict each other semantically or violate the explicit constraints defined in the schema.
+
+Do NOT flag:
+- Any numeric value that falls within the user-defined min/max range — it is always valid regardless of real-world expectations
+- Salary amounts that seem high or low by real-world standards — the user set the range intentionally
+- Personal opinions about what seems realistic or unusual
+- Values that are merely at the high or low end of a defined range
+
+Do NOT invent thresholds, rules, or expectations not present in the schema constraints.
+
+ONLY flag rows with genuine semantic contradictions, such as:
+- A cancelled or pending order that has a delivery_date (date field set when status makes it impossible)
+- A terminated employee with no termination_date when status is "terminated"
+- An email address that does not match the name field (e.g., alice@example.com for someone named Bob)
+- A date field that is in the wrong order relative to another date field (e.g., delivery_date before order_date)
+- An enum value outside the explicitly defined options list
+- A field that is null when the schema or another field's value makes null semantically impossible
+
+When in doubt, do not flag. A dataset that follows the schema constraints is a good dataset.`
 }
 
 export function buildJudgeUserMessage(

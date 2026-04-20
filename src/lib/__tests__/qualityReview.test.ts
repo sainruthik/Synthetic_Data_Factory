@@ -5,6 +5,7 @@ import {
   parseFixes,
   applyRowFixes,
   buildJudgeUserMessage,
+  buildJudgeSystemPrompt,
   buildFixUserMessage,
   toFriendlyReviewError,
 } from '../qualityReview'
@@ -244,6 +245,43 @@ describe('buildFixUserMessage', () => {
     const samples = makeRows(5)
     const msg = buildFixUserMessage(SCHEMA, flaggedRows, samples)
     expect(() => JSON.parse(msg)).not.toThrow()
+  })
+})
+
+// ── buildJudgeSystemPrompt ────────────────────────────────────────────────────
+
+describe('buildJudgeSystemPrompt', () => {
+  it('states that user-defined ranges are always valid', () => {
+    const prompt = buildJudgeSystemPrompt()
+    expect(prompt).toMatch(/user.*defined|explicitly defined/i)
+    expect(prompt).toMatch(/always valid|never flag.*range|within.*range/i)
+  })
+
+  it('explicitly says do not flag values within min/max range', () => {
+    const prompt = buildJudgeSystemPrompt()
+    expect(prompt).toMatch(/do not flag|never flag|not flag/i)
+    expect(prompt).toMatch(/min.*max|range|within/i)
+  })
+
+  it('explicitly says do not invent thresholds', () => {
+    const prompt = buildJudgeSystemPrompt()
+    expect(prompt).toMatch(/do not invent|never invent|not invent|fabricate/i)
+  })
+
+  it('instructs to only flag explicit constraint violations or semantic contradictions', () => {
+    const prompt = buildJudgeSystemPrompt()
+    expect(prompt).toMatch(/only flag|only.*violat/i)
+    expect(prompt).toMatch(/contradict|semantic|inconsisten/i)
+  })
+
+  it('gives cancelled order + delivery date as valid semantic example', () => {
+    const prompt = buildJudgeSystemPrompt()
+    expect(prompt).toMatch(/cancel|delivery.*(date|before|after)|terminated.*date/i)
+  })
+
+  it('explicitly forbids flagging based on real-world salary opinions', () => {
+    const prompt = buildJudgeSystemPrompt()
+    expect(prompt).toMatch(/real.?world|opinion|personal|seem.*high|seem.*low/i)
   })
 })
 
